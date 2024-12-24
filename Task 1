@@ -1,0 +1,84 @@
+# Task 1 : Moview review model--
+
+import requests
+from imdb import IMDb
+import time
+
+# Function to fetch IMDB data
+def get_imdb_data(movie_name):
+    ia = IMDb()
+    search_results = ia.search_movie(movie_name)
+    if search_results:
+        movie = search_results[0]
+        movie_id = movie.movieID
+        ia.update(movie)
+        title = movie.get('title', 'N/A')
+        genres = movie.get('genres', ['N/A'])
+        rating = movie.get('rating', 'N/A')
+        return title, genres, rating
+    else:
+        return None
+
+# Function to fetch Rotten Tomatoes data (using OMDB API)
+def get_rotten_tomatoes(movie_name):
+    api_key = 'your_omdb_api_key'  # Replace with your OMDB API key
+    url = f"http://www.omdbapi.com/?t={movie_name}&apikey={api_key}"
+    response = requests.get(url)
+    data = response.json()
+    if data.get('Response') == 'True':
+        ratings = data.get('Ratings', [])
+        rotten_tomatoes = next((item for item in ratings if item['Source'] == "Rotten Tomatoes"), None)
+        if rotten_tomatoes:
+            return rotten_tomatoes['Value']
+        else:
+            return 'No Rotten Tomatoes rating available'
+    return 'Movie not found'
+
+# Function to fetch streaming platform data (using JustWatch API)
+def get_platforms(movie_name):
+    search_url = f"https://apis.justwatch.com/content/titles/en_US/popular?query={movie_name}"
+    try:
+        response = requests.get(search_url)
+        data = response.json()
+        if 'items' in data:
+            platforms = []
+            for item in data['items']:
+                offerings = item.get('offerings', [])
+                if offerings:
+                    for offering in offerings:
+                        platform = offering.get('provider_id', 'Unknown')
+                        platforms.append(platform)
+            if platforms:
+                return ", ".join(platforms)
+            else:
+                return "Unavailable on streaming platforms"
+        return "No data found"
+    except Exception as e:
+        return f"Error fetching platforms: {e}"
+
+# Main function to call the above functions
+def get_movie_details(movie_name):
+    print("Loading data... Please wait.")
+    
+    # Simulate delay (just to show the loading message)
+    time.sleep(2)
+
+    imdb_data = get_imdb_data(movie_name)
+    if imdb_data:
+        title, genres, imdb_rating = imdb_data
+        rotten_tomatoes = get_rotten_tomatoes(movie_name)
+        platforms = get_platforms(movie_name)
+        
+        # Displaying results after loading
+        print("\nMovie Details:")
+        print(f"Movie: {title}")
+        print(f"Genres: {', '.join(genres)}")
+        print(f"IMDB Rating: {imdb_rating}")
+        print(f"Rotten Tomatoes: {rotten_tomatoes}")
+        print(f"Available on Platforms: {platforms}")
+    else:
+        print("Movie not found!")
+
+# User input for movie name
+movie_name = input("Enter movie name: ")
+get_movie_details(movie_name)
